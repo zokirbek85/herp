@@ -84,3 +84,13 @@ def test_debt_report_includes_contragent_with_debt(tmp_path: Path) -> None:
 
     excel_path = report.to_excel(tmp_path / "debt.xlsx")
     assert excel_path.exists()
+
+
+def test_debt_report_is_sorted_by_debt_descending() -> None:
+    _build_sample_contract()
+    _build_sample_contract()
+
+    report = build_top_debtors_report(limit=10_000)
+    debts = [row["debt"] for row in report.rows]
+
+    assert debts == sorted(debts, reverse=True)

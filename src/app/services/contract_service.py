@@ -107,6 +107,14 @@ class ContractService:
         with session_scope() as session:
             return ContractRepository(session).list_by_contragent(contragent_id)
 
+    def list_all(self) -> Sequence[Contract]:
+        with session_scope() as session:
+            return ContractRepository(session).list_all()
+
+    def count(self) -> int:
+        with session_scope() as session:
+            return ContractRepository(session).count()
+
     def list_by_status(self, status: ContractStatus) -> Sequence[Contract]:
         with session_scope() as session:
             return ContractRepository(session).list_by_status(status)

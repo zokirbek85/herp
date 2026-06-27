@@ -17,11 +17,15 @@ def create_backup(*, label: str | None = None) -> Path:
     """Joriy DuckDB faylining nusxasini backup papkasiga oladi.
 
     Nusxalashdan oldin `CHECKPOINT` chaqirilib, barcha yozilmagan o'zgarishlar diskka
-    tushiriladi — aks holda backup faylida oxirgi tranzaksiyalar yetishmasligi mumkin.
+    tushiriladi, so'ngra engine `dispose()` qilinadi — Windows'da DuckDB fayli ulangan
+    connection orqali eksklyuziv qulflangan bo'lib qoladi va bu holda `shutil.copy2`
+    `PermissionError` bilan yiqiladi. Keyingi so'rovda engine avtomatik qayta ulanadi.
     """
     settings = get_settings()
-    with get_engine().connect() as connection:
+    engine = get_engine()
+    with engine.connect() as connection:
         connection.exec_driver_sql("CHECKPOINT")
+    engine.dispose()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     suffix = f"_{label}" if label else ""

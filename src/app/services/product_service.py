@@ -64,6 +64,10 @@ class ProductService:
         with session_scope() as session:
             return ProductRepository(session).list(limit=limit, offset=offset)
 
+    def list_all(self) -> Sequence[Product]:
+        with session_scope() as session:
+            return ProductRepository(session).list_all()
+
     def search(self, query: str, *, limit: int = 20) -> Sequence[Product]:
         with session_scope() as session:
             return ProductRepository(session).search_by_name(query, limit=limit)

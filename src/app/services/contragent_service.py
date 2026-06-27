@@ -91,6 +91,14 @@ class ContragentService:
         with session_scope() as session:
             return ContragentRepository(session).list(limit=limit, offset=offset)
 
+    def list_all(self) -> Sequence[Contragent]:
+        with session_scope() as session:
+            return ContragentRepository(session).list_all()
+
+    def count(self) -> int:
+        with session_scope() as session:
+            return ContragentRepository(session).count()
+
     def search(self, query: str, *, limit: int = 20) -> Sequence[Contragent]:
         with session_scope() as session:
             return ContragentRepository(session).search_by_name(query, limit=limit)

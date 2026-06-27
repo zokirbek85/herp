@@ -83,6 +83,10 @@ class ShipmentService:
         with session_scope() as session:
             return ShipmentRepository(session).list_by_contract(contract_id)
 
+    def list_all(self) -> Sequence[Shipment]:
+        with session_scope() as session:
+            return ShipmentRepository(session).list_all()
+
     def list_items(self, shipment_id: int) -> Sequence[ShipmentItem]:
         with session_scope() as session:
             return ShipmentItemRepository(session).list_by_shipment(shipment_id)

@@ -50,3 +50,7 @@ class PaymentService:
     def list_by_contract(self, contract_id: int) -> Sequence[Payment]:
         with session_scope() as session:
             return PaymentRepository(session).list_by_contract(contract_id)
+
+    def list_all(self) -> Sequence[Payment]:
+        with session_scope() as session:
+            return PaymentRepository(session).list_all()
