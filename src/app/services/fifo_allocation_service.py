@@ -1,14 +1,24 @@
-"""FIFO to'lov taqsimoti: ortishlar eng eski sanadan boshlab to'lovlar bilan yopiladi."""
+"""FIFO to'lov taqsimoti: ortishlar eng eski sanadan boshlab to'lovlar bilan yopiladi.
+
+Valyuta: `ShipmentItem`da o'z valyuta ustuni yo'q — uning summasi har doim shartnoma
+valyutasida hisoblanadi (narx ham shu valyutada kiritiladi), shu sababli konversiyasiz
+ishlatiladi. `Payment.currency` esa nazariy jihatdan shartnoma valyutasidan farq qilishi
+mumkin bo'lgan mustaqil ustun — shu sababli FIFO'dan oldin har doim shartnoma valyutasiga
+o'tkaziladi, aks holda USD shartnomaga UZS to'lov (yoki aksincha) noto'g'ri taqsimlanardi.
+"""
 
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError
+from app.models.contract import Contract
 from app.models.payment_allocation import PaymentAllocation
 from app.repositories.payment_allocation_repository import PaymentAllocationRepository
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.shipment_item_repository import ShipmentItemRepository
 from app.repositories.shipment_repository import ShipmentRepository
+from app.services.currency_service import CurrencyConversionError, CurrencyService
 
 
 class FifoAllocationService:
@@ -26,10 +36,14 @@ class FifoAllocationService:
         self._item_repo = ShipmentItemRepository(session)
         self._payment_repo = PaymentRepository(session)
         self._allocation_repo = PaymentAllocationRepository(session)
+        self._currency_service = CurrencyService(session)
 
-    def reconcile_contract(self, contract_id: int) -> None:
-        shipment_outstanding = self._collect_shipment_outstanding(contract_id)
-        payment_available = self._collect_payment_available(contract_id)
+    def reconcile_contract(self, contract: Contract) -> None:
+        try:
+            shipment_outstanding = self._collect_shipment_outstanding(contract)
+            payment_available = self._collect_payment_available(contract)
+        except CurrencyConversionError as exc:
+            raise AppError(str(exc)) from exc
 
         shipment_idx = 0
         payment_idx = 0
@@ -58,9 +72,11 @@ class FifoAllocationService:
             if available <= 0:
                 payment_idx += 1
 
-    def _collect_shipment_outstanding(self, contract_id: int) -> list[tuple[int, Decimal]]:
+    def _collect_shipment_outstanding(self, contract: Contract) -> list[tuple[int, Decimal]]:
         result: list[tuple[int, Decimal]] = []
-        for shipment in self._shipment_repo.list_by_contract(contract_id):
+        for shipment in self._shipment_repo.list_by_contract(contract.id):
+            # ShipmentItem'da mustaqil valyuta ustuni yo'q — narx/summa allaqachon shartnoma
+            # valyutasida, shu sababli konversiya kerak emas.
             total_amount = sum(
                 (item.amount for item in self._item_repo.list_by_shipment(shipment.id)),
                 Decimal("0"),
@@ -71,11 +87,14 @@ class FifoAllocationService:
                 result.append((shipment.id, outstanding))
         return result
 
-    def _collect_payment_available(self, contract_id: int) -> list[tuple[int, Decimal]]:
+    def _collect_payment_available(self, contract: Contract) -> list[tuple[int, Decimal]]:
         result: list[tuple[int, Decimal]] = []
-        for payment in self._payment_repo.list_by_contract(contract_id):
+        for payment in self._payment_repo.list_by_contract(contract.id):
+            amount_in_contract_currency = self._currency_service.convert(
+                payment.amount, payment.currency, contract.currency, payment.payment_date
+            )
             allocated = self._allocation_repo.total_allocated_for_payment(payment.id)
-            available = payment.amount - allocated
+            available = amount_in_contract_currency - allocated
             if available > 0:
                 result.append((payment.id, available))
         return result

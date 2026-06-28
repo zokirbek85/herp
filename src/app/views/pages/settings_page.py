@@ -1,9 +1,9 @@
 """Sozlamalar: ilova haqida ma'lumot, fayl yo'llari va ma'lumotlar papkasiga tezkor kirish."""
 
-import os
-import sys
 from pathlib import Path
 
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFormLayout, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget
 
 import qtawesome as qta
@@ -15,8 +15,7 @@ from app.utils.paths import get_app_data_dir, get_backup_dir, get_log_dir
 
 def _open_folder(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    if sys.platform == "win32":
-        os.startfile(path)
+    QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
 
 class SettingsPage(QWidget):

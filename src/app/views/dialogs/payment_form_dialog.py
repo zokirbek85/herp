@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app.config.theme import style_calendar_popup
 from app.core.enums import PaymentType
 
 _PAYMENT_TYPE_LABELS = {
@@ -32,6 +33,7 @@ class PaymentFormDialog(QDialog):
         self.contract_combo: QComboBox | None = None
         self.date_input = QDateEdit(QDate.currentDate())
         self.date_input.setCalendarPopup(True)
+        style_calendar_popup(self.date_input)
 
         self.amount_input = QDoubleSpinBox()
         self.amount_input.setRange(0.01, 1_000_000_000)

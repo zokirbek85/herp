@@ -93,6 +93,20 @@ def test_fifo_allocates_advance_payment_to_later_shipment(contragent_id, product
     assert summary.debt == Decimal("200.00")
     assert summary.advance_balance == Decimal("0")
 
+    # To'liq yetkazilgan bo'lsa-da, qarz (200) hali yopilmagani uchun COMPLETED emas.
+    contract = contract_service.get(contract_id)
+    assert contract.status == ContractStatus.IN_PROGRESS
+
+    # Qarzni butunlay yopadigan yakuniy to'lov — endi yetkazish ham, to'lov ham 100%.
+    payment_service.create_payment(
+        contract_id=contract_id,
+        payment_date=date(2026, 2, 10),
+        amount=Decimal("200.00"),
+        payment_type=PaymentType.REGULAR,
+    )
+    summary = contract_service.get_financial_summary(contract_id)
+    assert summary.debt == Decimal("0")
+
     contract = contract_service.get(contract_id)
     assert contract.status == ContractStatus.COMPLETED
 

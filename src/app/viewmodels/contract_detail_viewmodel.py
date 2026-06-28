@@ -15,7 +15,6 @@ from app.services.contract_service import ContractService
 from app.services.dto import ShipmentItemInput
 from app.services.financial_summary_service import ContractFinancialSummary
 from app.services.payment_service import PaymentService
-from app.services.product_service import ProductService
 from app.services.shipment_service import ShipmentService
 from app.viewmodels.base_viewmodel import BaseViewModel
 
@@ -29,24 +28,22 @@ class ContractDetailViewModel(BaseViewModel):
         contract_service: ContractService | None = None,
         shipment_service: ShipmentService | None = None,
         payment_service: PaymentService | None = None,
-        product_service: ProductService | None = None,
     ) -> None:
         super().__init__()
         self.contract_id = contract_id
         self._contract_service = contract_service or ContractService()
         self._shipment_service = shipment_service or ShipmentService()
         self._payment_service = payment_service or PaymentService()
-        self._product_service = product_service or ProductService()
 
         self.contract: Contract | None = None
         self.summary: ContractFinancialSummary | None = None
         self.specifications: Sequence[ContractSpecification] = []
         self.shipments: Sequence[Shipment] = []
         self.payments: Sequence[Payment] = []
-        # Lazy SQLAlchemy relationship'lar (spec.product, shipment.items) session yopilgandan
-        # keyin View qatlamida ishlatilsa DetachedInstanceError beradi — shu sababli kerakli
-        # ma'lumotlar shu yerda, session ochiq paytida, oddiy dict'larga ko'chiriladi.
-        self.product_names: dict[int, str] = {}
+        # Lazy SQLAlchemy relationship `shipment.items` session yopilgandan keyin View
+        # qatlamida ishlatilsa DetachedInstanceError beradi — shu sababli shartnoma summasi
+        # shu yerda, session ochiq paytida, oddiy dict'ga ko'chiriladi. Mahsulot nomi va
+        # kg progress endi `summary.per_product`dan (FinancialSummaryService) olinadi.
         self.shipment_totals: dict[int, Decimal] = {}
 
     def load(self) -> None:
@@ -57,10 +54,6 @@ class ContractDetailViewModel(BaseViewModel):
             self.shipments = self._shipment_service.list_by_contract(self.contract_id)
             self.payments = self._payment_service.list_by_contract(self.contract_id)
 
-            self.product_names = {
-                spec.product_id: self._product_service.get(spec.product_id).name
-                for spec in self.specifications
-            }
             self.shipment_totals = {
                 shipment.id: sum(
                     (item.amount for item in self._shipment_service.list_items(shipment.id)),

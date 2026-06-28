@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app.config.theme import style_calendar_popup
 from app.core.enums import Currency
 from app.services.contragent_service import ContragentService
 
@@ -43,6 +44,7 @@ class ContractFormDialog(QDialog):
 
         self.date_input = QDateEdit(QDate.currentDate())
         self.date_input.setCalendarPopup(True)
+        style_calendar_popup(self.date_input)
 
         self.notes_input = QLineEdit()
 

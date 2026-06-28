@@ -3,8 +3,10 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
+    QLabel,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -38,7 +40,11 @@ class ShipmentsPage(QWidget):
         refresh_button.setIcon(qta.icon("fa5s.sync"))
         refresh_button.clicked.connect(self._view_model.load)
 
+        page_title = QLabel("Ortishlar")
+        page_title.setObjectName("PageTitle")
+
         toolbar = QHBoxLayout()
+        toolbar.addWidget(page_title)
         toolbar.addStretch()
         toolbar.addWidget(refresh_button)
         toolbar.addWidget(add_button)
@@ -50,10 +56,27 @@ class ShipmentsPage(QWidget):
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self._table.horizontalHeader().setStretchLastSection(True)
+        self._table.verticalHeader().setDefaultSectionSize(38)
+        self._table.setShowGrid(False)
+        self._table.setFrameShape(QFrame.Shape.NoFrame)
+        self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._table.horizontalHeader().setHighlightSections(False)
+        self._table.setMouseTracking(True)
 
-        layout = QVBoxLayout(self)
-        layout.addLayout(toolbar)
-        layout.addWidget(self._table)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        content = QWidget()
+        content.setObjectName("ContentArea")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(20, 16, 20, 16)
+        content_layout.setSpacing(12)
+        content_layout.addLayout(toolbar)
+        content_layout.addWidget(self._table)
+
+        outer_layout.addWidget(content)
 
         self._view_model.load()
 

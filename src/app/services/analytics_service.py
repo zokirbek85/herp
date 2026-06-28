@@ -160,3 +160,47 @@ class AnalyticsService:
             for contract in contract_repo.list_all():
                 breakdown[contract.status] += 1
             return breakdown
+
+    def kg_debt_by_product(self) -> list[tuple[str, Decimal]]:
+        """Har bir mahsulot bo'yicha barcha shartnomalardagi qolgan yetkazilmagan umumiy kg."""
+        with session_scope() as session:
+            contract_repo = ContractRepository(session)
+            summary_service = FinancialSummaryService(session)
+
+            remaining_by_product: dict[str, Decimal] = {}
+            for contract in contract_repo.list_all():
+                summary = summary_service.build(contract)
+                for product_summary in summary.per_product:
+                    if product_summary.remaining_kg <= 0:
+                        continue
+                    remaining_by_product[product_summary.product_name] = (
+                        remaining_by_product.get(product_summary.product_name, Decimal("0"))
+                        + product_summary.remaining_kg
+                    )
+
+            rows = list(remaining_by_product.items())
+            rows.sort(key=lambda row: row[1], reverse=True)
+            return rows
+
+    def contract_completion_distribution(self) -> dict[str, int]:
+        """Shartnomalar bajarilish % (kg bo'yicha) guruhlari: 0-25%, 25-50%, 50-75%, 75-99%, 100%."""
+        buckets = ("0-25%", "25-50%", "50-75%", "75-99%", "100%")
+        with session_scope() as session:
+            contract_repo = ContractRepository(session)
+            summary_service = FinancialSummaryService(session)
+
+            distribution = dict.fromkeys(buckets, 0)
+            for contract in contract_repo.list_all():
+                summary = summary_service.build(contract)
+                pct = summary.kg_completion_pct
+                if pct >= 100:
+                    distribution["100%"] += 1
+                elif pct >= 75:
+                    distribution["75-99%"] += 1
+                elif pct >= 50:
+                    distribution["50-75%"] += 1
+                elif pct >= 25:
+                    distribution["25-50%"] += 1
+                else:
+                    distribution["0-25%"] += 1
+            return distribution

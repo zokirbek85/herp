@@ -74,7 +74,7 @@ class ShipmentService:
                     )
                 )
 
-            FifoAllocationService(session).reconcile_contract(contract_id)
+            FifoAllocationService(session).reconcile_contract(contract)
             ContractStatusService(session).recalculate(contract)
 
             return shipment

@@ -5,6 +5,9 @@ sintaksisi PostgreSQL'ga juda yaqin bo'lgani uchun shu asosda minimal impl ro'yx
 Bu modul Alembic chaqirilishidan oldin (CLI yoki runtime'da) albatta import qilinishi kerak.
 """
 
+import sys
+from pathlib import Path
+
 from alembic.ddl.impl import DefaultImpl
 
 
@@ -12,16 +15,26 @@ class DuckDBImpl(DefaultImpl):
     __dialect__ = "duckdb"
 
 
+def _project_root() -> Path:
+    """`alembic.ini`/`alembic/` joylashgan papka.
+
+    PyInstaller bilan paketlangan holatda manba fayl tuzilishi mavjud emas — shu sababli
+    `sys._MEIPASS` (bundle ichidagi vaqtinchalik papka) ishlatiladi; u yerga `alembic/` va
+    `alembic.ini` build vaqtida nusxalanadi (`hazorasp_sales.spec`ga qarang).
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)  # type: ignore[attr-defined]
+    return Path(__file__).resolve().parents[3]
+
+
 def run_upgrade_to_head() -> None:
     """Dastur ishga tushganda lokal DuckDB faylini eng so'nggi migration darajasiga olib chiqadi."""
-    from pathlib import Path
-
     from alembic import command
     from alembic.config import Config
 
     from app.config.settings import get_settings
 
-    project_root = Path(__file__).resolve().parents[3]
+    project_root = _project_root()
     alembic_cfg = Config(str(project_root / "alembic.ini"))
     alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
     alembic_cfg.set_main_option("sqlalchemy.url", get_settings().database_url)

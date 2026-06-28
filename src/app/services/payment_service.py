@@ -10,6 +10,7 @@ from app.database.session import session_scope
 from app.models.payment import Payment
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.payment_repository import PaymentRepository
+from app.services.contract_status_service import ContractStatusService
 from app.services.fifo_allocation_service import FifoAllocationService
 
 
@@ -43,7 +44,8 @@ class PaymentService:
                 )
             )
 
-            FifoAllocationService(session).reconcile_contract(contract_id)
+            FifoAllocationService(session).reconcile_contract(contract)
+            ContractStatusService(session).recalculate(contract)
 
             return payment
 
@@ -54,3 +56,5 @@ class PaymentService:
     def list_all(self) -> Sequence[Payment]:
         with session_scope() as session:
             return PaymentRepository(session).list_all()
+
+    # TODO: delete qilinganda recalculate chaqirilsin — hozircha delete_payment metodi yo'q.

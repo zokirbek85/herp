@@ -1,6 +1,8 @@
 """Analitika: TOP 10 qarzdorlar, TOP 10 kontragent, TOP 10 mahsulot."""
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -25,7 +27,14 @@ def _make_table(headers: tuple[str, ...]) -> QTableWidget:
     table.setAlternatingRowColors(True)
     table.verticalHeader().setVisible(False)
     table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+    table.horizontalHeader().setStretchLastSection(True)
     table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    table.verticalHeader().setDefaultSectionSize(38)
+    table.setShowGrid(False)
+    table.setFrameShape(QFrame.Shape.NoFrame)
+    table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    table.horizontalHeader().setHighlightSections(False)
+    table.setMouseTracking(True)
     return table
 
 
@@ -36,11 +45,15 @@ class AnalyticsPage(QWidget):
         self._view_model.data_changed.connect(self._render)
         self._view_model.error_occurred.connect(self._show_error)
 
+        page_title = QLabel("Analitika")
+        page_title.setObjectName("PageTitle")
+
         refresh_button = QPushButton(" Yangilash")
         refresh_button.setIcon(qta.icon("fa5s.sync"))
         refresh_button.clicked.connect(self._view_model.load)
 
         toolbar = QHBoxLayout()
+        toolbar.addWidget(page_title)
         toolbar.addStretch()
         toolbar.addWidget(refresh_button)
 
@@ -53,9 +66,27 @@ class AnalyticsPage(QWidget):
         tables_row.addLayout(self._labeled(("TOP kontragentlar"), self._top_contragents_table))
         tables_row.addLayout(self._labeled(("TOP mahsulotlar"), self._top_products_table))
 
-        layout = QVBoxLayout(self)
-        layout.addLayout(toolbar)
-        layout.addLayout(tables_row)
+        self._kg_debt_table = _make_table(("Mahsulot", "Qolgan yetkazilmagan (kg)"))
+        self._completion_table = _make_table(("Bajarilish guruhi", "Shartnomalar soni"))
+
+        second_row = QHBoxLayout()
+        second_row.addLayout(self._labeled("Mahsulot bo'yicha kg qarzi", self._kg_debt_table))
+        second_row.addLayout(self._labeled("Shartnomalar bajarilishi (kg)", self._completion_table))
+
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        content = QWidget()
+        content.setObjectName("ContentArea")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(20, 16, 20, 16)
+        content_layout.setSpacing(12)
+        content_layout.addLayout(toolbar)
+        content_layout.addLayout(tables_row)
+        content_layout.addLayout(second_row)
+
+        outer_layout.addWidget(content)
 
         self._view_model.load()
 
@@ -84,6 +115,16 @@ class AnalyticsPage(QWidget):
         for row, item in enumerate(self._view_model.top_products):
             for column, value in enumerate((item.product.name, f"{item.total_kg:,.3f}")):
                 self._top_products_table.setItem(row, column, QTableWidgetItem(value))
+
+        self._kg_debt_table.setRowCount(len(self._view_model.kg_debt_by_product))
+        for row, (product_name, remaining_kg) in enumerate(self._view_model.kg_debt_by_product):
+            for column, value in enumerate((product_name, f"{remaining_kg:,.3f}")):
+                self._kg_debt_table.setItem(row, column, QTableWidgetItem(value))
+
+        self._completion_table.setRowCount(len(self._view_model.completion_distribution))
+        for row, (bucket, count) in enumerate(self._view_model.completion_distribution.items()):
+            for column, value in enumerate((bucket, str(count))):
+                self._completion_table.setItem(row, column, QTableWidgetItem(value))
 
     def _show_error(self, message: str) -> None:
         QMessageBox.warning(self, "Xatolik", message)

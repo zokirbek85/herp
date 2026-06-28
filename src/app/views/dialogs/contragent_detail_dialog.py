@@ -46,6 +46,7 @@ class ContragentDetailDialog(QDialog):
         self._table.setAlternatingRowColors(True)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self._table.horizontalHeader().setStretchLastSection(True)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         export_excel_button = QPushButton(" Excel'ga eksport")
@@ -94,6 +95,7 @@ class ContragentDetailDialog(QDialog):
             )
             for column, value in enumerate(values):
                 self._table.setItem(row_index, column, QTableWidgetItem(value))
+        self._table.resizeColumnsToContents()
 
     def _export(self, fmt: str) -> None:
         extension = {"excel": "xlsx", "pdf": "pdf"}[fmt]

@@ -1,5 +1,6 @@
 """Asosiy oyna: chap tomonda navigatsiya, o'ngda joriy modul sahifasi, pastda status bar."""
 
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -24,6 +25,7 @@ from app.views.pages.backup_page import BackupPage
 from app.views.pages.contracts_page import ContractsPage
 from app.views.pages.contragents_page import ContragentsPage
 from app.views.pages.dashboard_page import DashboardPage
+from app.views.pages.exchange_rates_page import ExchangeRatesPage
 from app.views.pages.payments_page import PaymentsPage
 from app.views.pages.products_page import ProductsPage
 from app.views.pages.reports_page import ReportsPage
@@ -38,6 +40,7 @@ _PAGE_FACTORIES = {
     "contracts": ContractsPage,
     "shipments": ShipmentsPage,
     "payments": PaymentsPage,
+    "exchange_rates": ExchangeRatesPage,
     "analytics": AnalyticsPage,
     "reports": ReportsPage,
     "backup": BackupPage,
@@ -45,19 +48,31 @@ _PAGE_FACTORIES = {
     "settings": SettingsPage,
 }
 
-_NAV_ITEMS = (
-    ("dashboard", "Dashboard", "fa5s.tachometer-alt"),
-    ("contragents", "Kontragentlar", "fa5s.users"),
-    ("products", "Mahsulotlar", "fa5s.box"),
-    ("contracts", "Shartnomalar", "fa5s.file-contract"),
-    ("shipments", "Ortishlar", "fa5s.truck"),
-    ("payments", "To'lovlar", "fa5s.money-bill-wave"),
-    ("analytics", "Analitika", "fa5s.chart-line"),
-    ("reports", "Hisobotlar", "fa5s.file-pdf"),
-    ("backup", "Backup", "fa5s.database"),
-    ("sync", "Sinxronlash", "fa5s.sync"),
-    ("settings", "Sozlamalar", "fa5s.cog"),
+_NAV_GROUPS = (
+    (None, (  # None = sarlavhasiz (Dashboard alohida)
+        ("dashboard", "Dashboard", "fa5s.tachometer-alt"),
+    )),
+    ("Asosiy", (
+        ("contragents", "Kontragentlar", "fa5s.users"),
+        ("contracts", "Shartnomalar", "fa5s.file-contract"),
+        ("shipments", "Ortishlar", "fa5s.truck"),
+        ("payments", "To'lovlar", "fa5s.money-bill-wave"),
+        ("exchange_rates", "Valyuta kurslari", "fa5s.coins"),
+    )),
+    ("Tahlil", (
+        ("products", "Mahsulotlar", "fa5s.box"),
+        ("analytics", "Analitika", "fa5s.chart-line"),
+        ("reports", "Hisobotlar", "fa5s.file-pdf"),
+    )),
+    ("Tizim", (
+        ("backup", "Backup", "fa5s.database"),
+        ("sync", "Sinxronlash", "fa5s.sync"),
+        ("settings", "Sozlamalar", "fa5s.cog"),
+    )),
 )
+
+# Tartibni saqlash uchun flat ro'yxat (sahifa indekslari uchun):
+_NAV_ITEMS = tuple(item for _, group in _NAV_GROUPS for item in group)
 
 
 class MainWindow(QMainWindow):
@@ -66,7 +81,7 @@ class MainWindow(QMainWindow):
         settings = get_settings()
         self._theme = initial_theme or settings.theme
         self.setWindowTitle(settings.app_name)
-        self.resize(1280, 800)
+        self.resize(1300, 820)
 
         self._pages = QStackedWidget()
         self._build_pages()
@@ -86,34 +101,47 @@ class MainWindow(QMainWindow):
     def _build_sidebar(self) -> QWidget:
         sidebar = QWidget()
         sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(220)
+        sidebar.setFixedWidth(210)
 
-        logo = QLabel("Hazorasp Sales")
-        logo.setStyleSheet("font-size: 16px; font-weight: 700; padding: 18px 16px;")
+        logo = QLabel("HERP")
+        logo.setObjectName("SidebarLogo")
 
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(8, 0, 8, 8)
-        layout.setSpacing(2)
+        layout.setContentsMargins(8, 4, 8, 12)
+        layout.setSpacing(0)
         layout.addWidget(logo)
+        layout.addSpacing(4)
 
         self._nav_group = QButtonGroup(self)
         self._nav_group.setExclusive(True)
 
-        for index, (_key, title, icon_name) in enumerate(_NAV_ITEMS):
-            button = QPushButton(f"  {title}")
-            button.setCheckable(True)
-            button.setIcon(qta.icon(icon_name))
-            button.setIconSize(button.iconSize())
-            button.clicked.connect(lambda _checked, i=index: self._pages.setCurrentIndex(i))
-            self._nav_group.addButton(button, index)
-            layout.addWidget(button)
+        page_index = 0
+        icon_color = "#8E8E93"
+
+        for group_label, items in _NAV_GROUPS:
+            if group_label is not None:
+                separator = QLabel(group_label.upper())
+                separator.setObjectName("SidebarGroupLabel")
+                layout.addWidget(separator)
+
+            for _key, title, icon_name in items:
+                button = QPushButton(f"  {title}")
+                button.setCheckable(True)
+                button.setIcon(qta.icon(icon_name, color=icon_color))
+                button.setIconSize(QSize(16, 16))
+                button.clicked.connect(
+                    lambda _checked, i=page_index: self._pages.setCurrentIndex(i)
+                )
+                self._nav_group.addButton(button, page_index)
+                layout.addWidget(button)
+                page_index += 1
 
         layout.addStretch()
 
         theme_button = QPushButton("  Tungi rejim")
         theme_button.setCheckable(True)
         theme_button.setChecked(self._theme == "dark")
-        theme_button.setIcon(qta.icon("fa5s.moon"))
+        theme_button.setIcon(qta.icon("fa5s.moon", color=icon_color))
         theme_button.toggled.connect(self._on_theme_toggled)
         layout.addWidget(theme_button)
 
@@ -129,7 +157,17 @@ class MainWindow(QMainWindow):
 
     def _build_pages(self) -> None:
         for key, _title, _icon_name in _NAV_ITEMS:
-            self._pages.addWidget(_PAGE_FACTORIES[key]())
+            page = _PAGE_FACTORIES[key]()
+            if isinstance(page, DashboardPage):
+                page.navigate_requested.connect(self._navigate_to)
+            self._pages.addWidget(page)
+
+    def _navigate_to(self, key: str) -> None:
+        index = next(i for i, (item_key, _, _) in enumerate(_NAV_ITEMS) if item_key == key)
+        self._pages.setCurrentIndex(index)
+        button = self._nav_group.button(index)
+        if button is not None:
+            button.setChecked(True)
 
     def _build_status_bar(self, app_version: str) -> None:
         status_bar = QStatusBar()

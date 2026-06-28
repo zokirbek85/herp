@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 import qtawesome as qta
 
+from app.config.theme import style_calendar_popup
 from app.services.dto import ShipmentItemInput
 from app.services.product_service import ProductService
 
@@ -40,6 +41,7 @@ class ShipmentFormDialog(QDialog):
         self.shipment_number_input = QLineEdit()
         self.date_input = QDateEdit(QDate.currentDate())
         self.date_input.setCalendarPopup(True)
+        style_calendar_popup(self.date_input)
         self.invoice_input = QLineEdit()
         self.ttn_input = QLineEdit()
 
@@ -57,7 +59,9 @@ class ShipmentFormDialog(QDialog):
         self.items_table = QTableWidget(0, len(_ITEM_COLUMNS))
         self.items_table.setHorizontalHeaderLabels(_ITEM_COLUMNS)
         self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.items_table.horizontalHeader().setStretchLastSection(True)
         self.items_table.verticalHeader().setVisible(False)
+        self.items_table.verticalHeader().setDefaultSectionSize(40)
 
         add_row_button = QPushButton(" Qator qo'shish")
         add_row_button.setIcon(qta.icon("fa5s.plus"))

@@ -33,6 +33,7 @@ def _make_table(headers: tuple[str, ...]) -> QTableWidget:
     table.setAlternatingRowColors(True)
     table.verticalHeader().setVisible(False)
     table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+    table.horizontalHeader().setStretchLastSection(True)
     table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
     return table
 
@@ -47,8 +48,20 @@ class ContractDetailDialog(QDialog):
         self._view_model.error_occurred.connect(self._show_error)
 
         self._summary_row = QHBoxLayout()
+        self._kg_summary_label = QLabel()
+        self._kg_summary_label.setStyleSheet("color: #5B6470; padding: 4px 0;")
 
-        self._spec_table = _make_table(("Mahsulot", "Rejalashtirilgan kg", "Mo'ljal narx", "Summa"))
+        self._spec_table = _make_table(
+            (
+                "Mahsulot",
+                "Rejalashtirilgan kg",
+                "Yetkazilgan kg",
+                "Qoldiq kg",
+                "Bajarilish %",
+                "Mo'ljal narx",
+                "Summa",
+            )
+        )
         self._shipment_table = _make_table(("Ortish №", "Sana", "Invoice", "TTN", "Summa"))
         self._payment_table = _make_table(("Sana", "Summa", "Valyuta", "Turi"))
 
@@ -81,6 +94,7 @@ class ContractDetailDialog(QDialog):
         self._title_label.setStyleSheet("font-size: 18px; font-weight: 700;")
         layout.addWidget(self._title_label)
         layout.addLayout(self._summary_row)
+        layout.addWidget(self._kg_summary_label)
         layout.addWidget(tabs)
         footer = QHBoxLayout()
         footer.addStretch()
@@ -116,16 +130,29 @@ class ContractDetailDialog(QDialog):
         ):
             self._summary_row.addWidget(KpiCard(title, f"{_AMOUNT_FORMAT(value)} {contract.currency.value}"))
 
-        self._spec_table.setRowCount(len(self._view_model.specifications))
-        for row, spec in enumerate(self._view_model.specifications):
+        self._kg_summary_label.setText(
+            f"Jami: {summary.total_planned_kg:,.3f} kg / "
+            f"{summary.total_shipped_kg:,.3f} kg yetkazildi / "
+            f"{summary.total_remaining_kg:,.3f} kg qoldi "
+            f"({summary.kg_completion_pct:,.2f}%)"
+        )
+
+        spec_by_product = {spec.product_id: spec for spec in self._view_model.specifications}
+        self._spec_table.setRowCount(len(summary.per_product))
+        for row, product_summary in enumerate(summary.per_product):
+            spec = spec_by_product.get(product_summary.product_id)
             values = (
-                self._view_model.product_names.get(spec.product_id, ""),
-                f"{spec.planned_kg:,.3f}",
-                f"{spec.reference_price:,.4f}",
-                _AMOUNT_FORMAT(spec.amount),
+                product_summary.product_name,
+                f"{product_summary.planned_kg:,.3f}",
+                f"{product_summary.shipped_kg:,.3f}",
+                f"{product_summary.remaining_kg:,.3f}",
+                f"{product_summary.completion_pct:,.2f}",
+                f"{spec.reference_price:,.4f}" if spec is not None else "",
+                _AMOUNT_FORMAT(spec.amount) if spec is not None else "",
             )
             for column, value in enumerate(values):
                 self._spec_table.setItem(row, column, QTableWidgetItem(value))
+        self._spec_table.resizeColumnsToContents()
 
         self._shipment_table.setRowCount(len(self._view_model.shipments))
         for row, shipment in enumerate(self._view_model.shipments):
@@ -139,6 +166,7 @@ class ContractDetailDialog(QDialog):
             )
             for column, value in enumerate(values):
                 self._shipment_table.setItem(row, column, QTableWidgetItem(value))
+        self._shipment_table.resizeColumnsToContents()
 
         self._payment_table.setRowCount(len(self._view_model.payments))
         for row, payment in enumerate(self._view_model.payments):
@@ -150,6 +178,7 @@ class ContractDetailDialog(QDialog):
             )
             for column, value in enumerate(values):
                 self._payment_table.setItem(row, column, QTableWidgetItem(value))
+        self._payment_table.resizeColumnsToContents()
 
     def _on_add_specification(self) -> None:
         dialog = SpecificationFormDialog(parent=self)

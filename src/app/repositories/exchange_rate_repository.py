@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import select
@@ -17,3 +18,18 @@ class ExchangeRateRepository(BaseRepository[ExchangeRate]):
             .limit(1)
         )
         return self.session.execute(stmt).scalar_one_or_none()
+
+    def get_by_date(self, rate_date: date) -> ExchangeRate | None:
+        stmt = select(ExchangeRate).where(
+            ExchangeRate.rate_date == rate_date, ExchangeRate.deleted_at.is_(None)
+        )
+        return self.session.execute(stmt).scalar_one_or_none()
+
+    def list_recent(self, limit: int = 30) -> Sequence[ExchangeRate]:
+        stmt = (
+            select(ExchangeRate)
+            .where(ExchangeRate.deleted_at.is_(None))
+            .order_by(ExchangeRate.rate_date.desc())
+            .limit(limit)
+        )
+        return self.session.execute(stmt).scalars().all()

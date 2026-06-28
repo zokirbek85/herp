@@ -62,7 +62,9 @@ class SyncPage(QWidget):
         self._conflicts_table.verticalHeader().setVisible(False)
         self._conflicts_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self._conflicts_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self._conflicts_table.horizontalHeader().setStretchLastSection(True)
         self._conflicts_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._conflicts_table.verticalHeader().setDefaultSectionSize(40)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._status_label)
