@@ -11,6 +11,10 @@ Diqqat:
   aks holda runtime'da "Can't load plugin: sqlalchemy.dialects:duckdb" xatosi chiqadi.
 - `qtawesome` icon shriftlari (`fonts/*.ttf`) paket ichidagi data fayllar — modulegraph ularni
   avtomatik aniqlamaydi, shu sababli `collect_data_files` bilan qo'lda qo'shiladi.
+- `pytz` — bizning kodimizda hech qayerda `import pytz` yo'q, lekin DuckDB'ning C kengaytmasi
+  ba'zi sana/vaqt amallarida uni runtime'da ichkaridan dinamik import qiladi. modulegraph buni
+  ko'ra olmaydi, shu sababli qo'lda `hiddenimports`ga qo'shilgan (aks holda
+  "Required module 'pytz' failed to import" xatosi chiqadi).
 """
 
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
@@ -30,7 +34,7 @@ a = Analysis(
     # "logging.config" — `alembic/env.py` runtime'da fayldan o'qib exec qilinadi
     # (`alembic.util.pyfiles.load_module_py`), shu sababli uning importlari PyInstaller'ning
     # statik modulegraph tahlilida ko'rinmaydi va qo'lda ko'rsatilishi shart.
-    hiddenimports=["duckdb_engine", "logging.config"],
+    hiddenimports=["duckdb_engine", "logging.config", "pytz"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
