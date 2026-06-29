@@ -11,7 +11,7 @@
 set -euo pipefail
 
 APP_NAME="Hazorasp Sales Management"
-APP_VERSION="0.1.0"
+APP_VERSION="0.2.0"
 APP_BUNDLE="HazoraspSalesManagement.app"
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

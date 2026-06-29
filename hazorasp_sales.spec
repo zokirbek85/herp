@@ -78,8 +78,8 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": "Hazorasp Sales Management",
             "CFBundleDisplayName": "Hazorasp Sales Management",
-            "CFBundleShortVersionString": "0.1.0",
-            "CFBundleVersion": "0.1.0",
+            "CFBundleShortVersionString": "0.2.0",
+            "CFBundleVersion": "0.2.0",
             "NSHighResolutionCapable": True,
         },
     )
