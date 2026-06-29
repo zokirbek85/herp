@@ -46,7 +46,7 @@ class PaymentFormDialog(QDialog):
         style_calendar_popup(self.date_input)
 
         self.amount_input = QDoubleSpinBox()
-        self.amount_input.setRange(0.01, 1_000_000_000)
+        self.amount_input.setRange(0.01, 1_000_000_000_000)
         self.amount_input.setDecimals(2)
         self.amount_input.setValue(float(payment.amount) if payment else 100.0)
 

@@ -128,7 +128,7 @@ class ShipmentFormDialog(QDialog):
         self.items_table.setCellWidget(row, 2, kg_input)
 
         price_input = QDoubleSpinBox()
-        price_input.setRange(0.0001, 1_000_000)
+        price_input.setRange(0.0001, 1_000_000_000)
         price_input.setDecimals(4)
         if item is not None:
             price_input.setValue(float(item.price))

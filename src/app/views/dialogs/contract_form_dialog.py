@@ -47,7 +47,7 @@ class ContractFormDialog(QDialog):
                 self.currency_combo.setCurrentIndex(index)
 
         self.amount_input = QDoubleSpinBox()
-        self.amount_input.setRange(0.01, 1_000_000_000)
+        self.amount_input.setRange(0.01, 1_000_000_000_000)
         self.amount_input.setDecimals(2)
         self.amount_input.setValue(float(contract.amount) if contract else 1000.0)
 
