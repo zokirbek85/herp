@@ -87,6 +87,36 @@ class ShipmentListViewModel(BaseViewModel):
 
         return self.run_safely(action)
 
+    def update(
+        self,
+        shipment_id: int,
+        *,
+        shipment_number: str,
+        shipment_date: date,
+        items: list[ShipmentItemInput],
+        invoice_number: str | None,
+        ttn_number: str | None,
+    ) -> bool:
+        def action() -> None:
+            self._shipment_service.update_shipment(
+                shipment_id,
+                shipment_number=shipment_number,
+                shipment_date=shipment_date,
+                items=items,
+                invoice_number=invoice_number,
+                ttn_number=ttn_number,
+            )
+            self.load()
+
+        return self.run_safely(action)
+
+    def delete(self, shipment_id: int) -> bool:
+        def action() -> None:
+            self._shipment_service.soft_delete(shipment_id)
+            self.load()
+
+        return self.run_safely(action)
+
     def contract_choices(self) -> list[tuple[int, str]]:
         return [
             (contract.id, contract.contract_number) for contract in self._contract_service.list_all()

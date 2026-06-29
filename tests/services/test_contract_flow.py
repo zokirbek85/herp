@@ -53,7 +53,7 @@ def test_fifo_allocates_advance_payment_to_later_shipment(contragent_id, product
     )
     summary = contract_service.get_financial_summary(contract_id)
     assert summary.advance_balance == Decimal("500.00")
-    assert summary.debt == Decimal("0")
+    assert summary.debt == Decimal("500.00")
 
     # Birinchi ortish: avans avtomatik yopiladi, 100 qarz qoladi.
     shipment_service.create_shipment(
@@ -65,7 +65,7 @@ def test_fifo_allocates_advance_payment_to_later_shipment(contragent_id, product
     summary = contract_service.get_financial_summary(contract_id)
     assert summary.total_shipped == Decimal("600.00")
     assert summary.advance_balance == Decimal("0")
-    assert summary.debt == Decimal("100.00")
+    assert summary.debt == Decimal("-100.00")
 
     contract = contract_service.get(contract_id)
     assert contract.status == ContractStatus.IN_PROGRESS
@@ -79,7 +79,7 @@ def test_fifo_allocates_advance_payment_to_later_shipment(contragent_id, product
     )
     summary = contract_service.get_financial_summary(contract_id)
     assert summary.total_shipped == Decimal("1000.00")
-    assert summary.debt == Decimal("500.00")
+    assert summary.debt == Decimal("-500.00")
 
     # Yangi to'lov: FIFO bo'yicha avval birinchi ortishning qolgan 100'i, keyin ikkinchisi yopiladi.
     payment_service.create_payment(
@@ -90,7 +90,7 @@ def test_fifo_allocates_advance_payment_to_later_shipment(contragent_id, product
     )
     summary = contract_service.get_financial_summary(contract_id)
     assert summary.total_paid == Decimal("800.00")
-    assert summary.debt == Decimal("200.00")
+    assert summary.debt == Decimal("-200.00")
     assert summary.advance_balance == Decimal("0")
 
     # To'liq yetkazilgan bo'lsa-da, qarz (200) hali yopilmagani uchun COMPLETED emas.

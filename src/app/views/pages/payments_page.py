@@ -36,6 +36,14 @@ class PaymentsPage(QWidget):
         add_button.setIcon(qta.icon("fa5s.plus", color="#FFFFFF"))
         add_button.clicked.connect(self._on_add_clicked)
 
+        edit_button = QPushButton(" Tahrirlash")
+        edit_button.setIcon(qta.icon("fa5s.edit"))
+        edit_button.clicked.connect(self._on_edit_clicked)
+
+        delete_button = QPushButton(" O'chirish")
+        delete_button.setIcon(qta.icon("fa5s.trash-alt"))
+        delete_button.clicked.connect(self._on_delete_clicked)
+
         refresh_button = QPushButton(" Yangilash")
         refresh_button.setIcon(qta.icon("fa5s.sync"))
         refresh_button.clicked.connect(self._view_model.load)
@@ -47,12 +55,15 @@ class PaymentsPage(QWidget):
         toolbar.addWidget(page_title)
         toolbar.addStretch()
         toolbar.addWidget(refresh_button)
+        toolbar.addWidget(edit_button)
+        toolbar.addWidget(delete_button)
         toolbar.addWidget(add_button)
 
         self._table = QTableWidget(0, len(_COLUMNS))
         self._table.setHorizontalHeaderLabels(_COLUMNS)
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
         self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -89,6 +100,32 @@ class PaymentsPage(QWidget):
         dialog = PaymentFormDialog(parent=self, contract_choices=choices)
         if dialog.exec():
             self._view_model.create(**dialog.values)
+
+    def _on_edit_clicked(self) -> None:
+        row = self._selected_row()
+        if row is None:
+            return
+        dialog = PaymentFormDialog(row.payment, parent=self)
+        if dialog.exec():
+            self._view_model.update(row.payment.id, **dialog.values)
+
+    def _on_delete_clicked(self) -> None:
+        row = self._selected_row()
+        if row is None:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Tasdiqlash",
+            "Tanlangan to'lovni o'chirishni tasdiqlaysizmi?",
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self._view_model.delete(row.payment.id)
+
+    def _selected_row(self) -> PaymentRow | None:
+        row = self._table.currentRow()
+        if row < 0 or row >= len(self._view_model.rows):
+            return None
+        return self._view_model.rows[row]
 
     def _render_rows(self, rows: list[PaymentRow]) -> None:
         self._table.setRowCount(len(rows))

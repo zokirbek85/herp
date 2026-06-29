@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from app.config.theme import style_calendar_popup
 from app.core.enums import PaymentType
+from app.models.payment import Payment
 
 _PAYMENT_TYPE_LABELS = {
     PaymentType.ADVANCE: "Avans",
@@ -25,24 +26,37 @@ _PAYMENT_TYPE_LABELS = {
 
 
 class PaymentFormDialog(QDialog):
-    def __init__(self, parent=None, contract_choices: list[tuple[int, str]] | None = None) -> None:
+    def __init__(
+        self,
+        payment: Payment | None = None,
+        parent=None,
+        contract_choices: list[tuple[int, str]] | None = None,
+    ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Yangi to'lov")
+        self.setWindowTitle("To'lovni tahrirlash" if payment else "Yangi to'lov")
         self.setMinimumWidth(380)
 
         self.contract_combo: QComboBox | None = None
-        self.date_input = QDateEdit(QDate.currentDate())
+        self.date_input = QDateEdit(
+            QDate(payment.payment_date.year, payment.payment_date.month, payment.payment_date.day)
+            if payment
+            else QDate.currentDate()
+        )
         self.date_input.setCalendarPopup(True)
         style_calendar_popup(self.date_input)
 
         self.amount_input = QDoubleSpinBox()
         self.amount_input.setRange(0.01, 1_000_000_000)
         self.amount_input.setDecimals(2)
-        self.amount_input.setValue(100.0)
+        self.amount_input.setValue(float(payment.amount) if payment else 100.0)
 
         self.payment_type_combo = QComboBox()
         for payment_type, label in _PAYMENT_TYPE_LABELS.items():
             self.payment_type_combo.addItem(label, payment_type)
+        if payment is not None:
+            index = self.payment_type_combo.findData(payment.payment_type)
+            if index >= 0:
+                self.payment_type_combo.setCurrentIndex(index)
 
         form = QFormLayout()
         if contract_choices is not None:

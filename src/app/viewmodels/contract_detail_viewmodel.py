@@ -99,6 +99,36 @@ class ContractDetailViewModel(BaseViewModel):
 
         return self.run_safely(action)
 
+    def update_shipment(
+        self,
+        shipment_id: int,
+        *,
+        shipment_number: str,
+        shipment_date: date,
+        items: list[ShipmentItemInput],
+        invoice_number: str | None,
+        ttn_number: str | None,
+    ) -> bool:
+        def action() -> None:
+            self._shipment_service.update_shipment(
+                shipment_id,
+                shipment_number=shipment_number,
+                shipment_date=shipment_date,
+                items=items,
+                invoice_number=invoice_number,
+                ttn_number=ttn_number,
+            )
+            self.load()
+
+        return self.run_safely(action)
+
+    def delete_shipment(self, shipment_id: int) -> bool:
+        def action() -> None:
+            self._shipment_service.soft_delete(shipment_id)
+            self.load()
+
+        return self.run_safely(action)
+
     def create_payment(
         self, *, payment_date: date, amount: Decimal, payment_type: PaymentType
     ) -> bool:
@@ -109,6 +139,24 @@ class ContractDetailViewModel(BaseViewModel):
                 amount=amount,
                 payment_type=payment_type,
             )
+            self.load()
+
+        return self.run_safely(action)
+
+    def update_payment(
+        self, payment_id: int, *, payment_date: date, amount: Decimal, payment_type: PaymentType
+    ) -> bool:
+        def action() -> None:
+            self._payment_service.update_payment(
+                payment_id, payment_date=payment_date, amount=amount, payment_type=payment_type
+            )
+            self.load()
+
+        return self.run_safely(action)
+
+    def delete_payment(self, payment_id: int) -> bool:
+        def action() -> None:
+            self._payment_service.soft_delete(payment_id)
             self.load()
 
         return self.run_safely(action)

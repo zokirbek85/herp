@@ -33,3 +33,11 @@ class PaymentAllocationRepository(BaseRepository[PaymentAllocation]):
             PaymentAllocation.shipment_id == shipment_id, PaymentAllocation.deleted_at.is_(None)
         )
         return self.session.execute(stmt).scalar_one()
+
+    def soft_delete_by_payment(self, payment_id: int) -> None:
+        for allocation in self.list_by_payment(payment_id):
+            self.soft_delete(allocation)
+
+    def soft_delete_by_shipment(self, shipment_id: int) -> None:
+        for allocation in self.list_by_shipment(shipment_id):
+            self.soft_delete(allocation)

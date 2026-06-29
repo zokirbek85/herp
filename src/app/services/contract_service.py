@@ -13,7 +13,9 @@ from app.models.contract_specification import ContractSpecification
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.contract_specification_repository import ContractSpecificationRepository
 from app.repositories.contragent_repository import ContragentRepository
+from app.repositories.payment_repository import PaymentRepository
 from app.repositories.product_repository import ProductRepository
+from app.repositories.shipment_repository import ShipmentRepository
 from app.services.financial_summary_service import ContractFinancialSummary, FinancialSummaryService
 
 
@@ -50,6 +52,54 @@ class ContractService:
                     notes=notes,
                 )
             )
+
+    def update(
+        self,
+        contract_id: int,
+        *,
+        contract_number: str,
+        contragent_id: int,
+        currency: Currency,
+        amount: Decimal,
+        contract_date: date,
+        notes: str | None = None,
+    ) -> Contract:
+        if amount <= 0:
+            raise ValidationError("Shartnoma summasi musbat bo'lishi kerak")
+
+        with session_scope() as session:
+            contragent_repo = ContragentRepository(session)
+            contract_repo = ContractRepository(session)
+
+            contract = contract_repo.get_by_id_or_raise(contract_id)
+            contragent_repo.get_by_id_or_raise(contragent_id)
+
+            if contract_number != contract.contract_number:
+                existing = contract_repo.get_by_number(contract_number)
+                if existing is not None and existing.id != contract_id:
+                    raise DuplicateError("Contract", "contract_number", contract_number)
+
+            contract.contract_number = contract_number
+            contract.contragent_id = contragent_id
+            contract.currency = currency
+            contract.amount = amount
+            contract.contract_date = contract_date
+            contract.notes = notes
+            session.flush()
+            return contract
+
+    def soft_delete(self, contract_id: int) -> None:
+        with session_scope() as session:
+            contract_repo = ContractRepository(session)
+            shipment_repo = ShipmentRepository(session)
+            payment_repo = PaymentRepository(session)
+
+            contract = contract_repo.get_by_id_or_raise(contract_id)
+            if shipment_repo.list_by_contract(contract_id) or payment_repo.list_by_contract(contract_id):
+                raise ValidationError(
+                    "Ortish yoki to'lovlari mavjud shartnomani o'chirib bo'lmaydi"
+                )
+            contract_repo.soft_delete(contract)
 
     def cancel(self, contract_id: int) -> Contract:
         with session_scope() as session:

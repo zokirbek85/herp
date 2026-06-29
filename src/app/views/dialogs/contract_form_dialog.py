@@ -17,36 +17,49 @@ from PySide6.QtWidgets import (
 
 from app.config.theme import style_calendar_popup
 from app.core.enums import Currency
+from app.models.contract import Contract
 from app.services.contragent_service import ContragentService
 
 
 class ContractFormDialog(QDialog):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, contract: Contract | None = None, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Yangi shartnoma")
+        self.setWindowTitle("Shartnomani tahrirlash" if contract else "Yangi shartnoma")
         self.setMinimumWidth(420)
 
         self._contragents = ContragentService().list_all()
 
-        self.contract_number_input = QLineEdit()
+        self.contract_number_input = QLineEdit(contract.contract_number if contract else "")
         self.contragent_combo = QComboBox()
         for contragent in self._contragents:
             self.contragent_combo.addItem(contragent.name, contragent.id)
+        if contract is not None:
+            index = self.contragent_combo.findData(contract.contragent_id)
+            if index >= 0:
+                self.contragent_combo.setCurrentIndex(index)
 
         self.currency_combo = QComboBox()
         for currency in Currency:
             self.currency_combo.addItem(currency.value, currency)
+        if contract is not None:
+            index = self.currency_combo.findData(contract.currency)
+            if index >= 0:
+                self.currency_combo.setCurrentIndex(index)
 
         self.amount_input = QDoubleSpinBox()
         self.amount_input.setRange(0.01, 1_000_000_000)
         self.amount_input.setDecimals(2)
-        self.amount_input.setValue(1000.0)
+        self.amount_input.setValue(float(contract.amount) if contract else 1000.0)
 
-        self.date_input = QDateEdit(QDate.currentDate())
+        self.date_input = QDateEdit(
+            QDate(contract.contract_date.year, contract.contract_date.month, contract.contract_date.day)
+            if contract
+            else QDate.currentDate()
+        )
         self.date_input.setCalendarPopup(True)
         style_calendar_popup(self.date_input)
 
-        self.notes_input = QLineEdit()
+        self.notes_input = QLineEdit(contract.notes or "" if contract else "")
 
         form = QFormLayout()
         form.addRow("Shartnoma raqami*", self.contract_number_input)

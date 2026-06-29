@@ -18,6 +18,9 @@ from PySide6.QtWidgets import (
 
 import qtawesome as qta
 
+from app.models.payment import Payment
+from app.models.shipment import Shipment
+from app.services.shipment_service import ShipmentService
 from app.viewmodels.contract_detail_viewmodel import ContractDetailViewModel
 from app.views.dialogs.payment_form_dialog import PaymentFormDialog
 from app.views.dialogs.shipment_form_dialog import ShipmentFormDialog
@@ -35,6 +38,8 @@ def _make_table(headers: tuple[str, ...]) -> QTableWidget:
     table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
     table.horizontalHeader().setStretchLastSection(True)
     table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+    table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
     return table
 
 
@@ -73,12 +78,28 @@ class ContractDetailDialog(QDialog):
         add_shipment_button = QPushButton(" Yangi ortish")
         add_shipment_button.setIcon(qta.icon("fa5s.plus"))
         add_shipment_button.clicked.connect(self._on_add_shipment)
-        shipment_tab = self._build_tab(self._shipment_table, add_shipment_button)
+        edit_shipment_button = QPushButton(" Tahrirlash")
+        edit_shipment_button.setIcon(qta.icon("fa5s.edit"))
+        edit_shipment_button.clicked.connect(self._on_edit_shipment)
+        delete_shipment_button = QPushButton(" O'chirish")
+        delete_shipment_button.setIcon(qta.icon("fa5s.trash-alt"))
+        delete_shipment_button.clicked.connect(self._on_delete_shipment)
+        shipment_tab = self._build_tab(
+            self._shipment_table, edit_shipment_button, delete_shipment_button, add_shipment_button
+        )
 
         add_payment_button = QPushButton(" Yangi to'lov")
         add_payment_button.setIcon(qta.icon("fa5s.plus"))
         add_payment_button.clicked.connect(self._on_add_payment)
-        payment_tab = self._build_tab(self._payment_table, add_payment_button)
+        edit_payment_button = QPushButton(" Tahrirlash")
+        edit_payment_button.setIcon(qta.icon("fa5s.edit"))
+        edit_payment_button.clicked.connect(self._on_edit_payment)
+        delete_payment_button = QPushButton(" O'chirish")
+        delete_payment_button.setIcon(qta.icon("fa5s.trash-alt"))
+        delete_payment_button.clicked.connect(self._on_delete_payment)
+        payment_tab = self._build_tab(
+            self._payment_table, edit_payment_button, delete_payment_button, add_payment_button
+        )
 
         tabs = QTabWidget()
         tabs.addTab(spec_tab, "Spetsifikatsiya")
@@ -103,11 +124,12 @@ class ContractDetailDialog(QDialog):
 
         self._view_model.load()
 
-    def _build_tab(self, table: QTableWidget, add_button: QPushButton) -> QWidget:
+    def _build_tab(self, table: QTableWidget, *buttons: QPushButton) -> QWidget:
         widget = QWidget()
         toolbar = QHBoxLayout()
         toolbar.addStretch()
-        toolbar.addWidget(add_button)
+        for button in buttons:
+            toolbar.addWidget(button)
         tab_layout = QVBoxLayout(widget)
         tab_layout.addLayout(toolbar)
         tab_layout.addWidget(table)
@@ -190,10 +212,59 @@ class ContractDetailDialog(QDialog):
         if dialog.exec():
             self._view_model.create_shipment(**dialog.values)
 
+    def _on_edit_shipment(self) -> None:
+        shipment = self._selected_shipment()
+        if shipment is None:
+            return
+        items = ShipmentService().list_items(shipment.id)
+        dialog = ShipmentFormDialog(shipment, parent=self, items=list(items))
+        if dialog.exec():
+            self._view_model.update_shipment(shipment.id, **dialog.values)
+
+    def _on_delete_shipment(self) -> None:
+        shipment = self._selected_shipment()
+        if shipment is None:
+            return
+        confirm = QMessageBox.question(
+            self, "Tasdiqlash", f"'{shipment.shipment_number}' ortishni o'chirishni tasdiqlaysizmi?"
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self._view_model.delete_shipment(shipment.id)
+
+    def _selected_shipment(self) -> Shipment | None:
+        row = self._shipment_table.currentRow()
+        if row < 0 or row >= len(self._view_model.shipments):
+            return None
+        return self._view_model.shipments[row]
+
     def _on_add_payment(self) -> None:
         dialog = PaymentFormDialog(parent=self)
         if dialog.exec():
             self._view_model.create_payment(**dialog.values)
+
+    def _on_edit_payment(self) -> None:
+        payment = self._selected_payment()
+        if payment is None:
+            return
+        dialog = PaymentFormDialog(payment, parent=self)
+        if dialog.exec():
+            self._view_model.update_payment(payment.id, **dialog.values)
+
+    def _on_delete_payment(self) -> None:
+        payment = self._selected_payment()
+        if payment is None:
+            return
+        confirm = QMessageBox.question(
+            self, "Tasdiqlash", "Tanlangan to'lovni o'chirishni tasdiqlaysizmi?"
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self._view_model.delete_payment(payment.id)
+
+    def _selected_payment(self) -> Payment | None:
+        row = self._payment_table.currentRow()
+        if row < 0 or row >= len(self._view_model.payments):
+            return None
+        return self._view_model.payments[row]
 
     def _on_cancel_contract(self) -> None:
         confirm = QMessageBox.question(

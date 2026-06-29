@@ -53,9 +53,9 @@ class AnalyticsService:
             debt_by_contragent: dict[int, Decimal] = {}
             for contract in contract_repo.list_all():
                 summary = summary_service.build(contract)
-                if summary.debt > 0:
+                if summary.debt < 0:
                     debt_by_contragent[contract.contragent_id] = (
-                        debt_by_contragent.get(contract.contragent_id, Decimal("0")) + summary.debt
+                        debt_by_contragent.get(contract.contragent_id, Decimal("0")) - summary.debt
                     )
 
             rows = [

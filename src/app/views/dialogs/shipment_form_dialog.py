@@ -23,6 +23,8 @@ from PySide6.QtWidgets import (
 import qtawesome as qta
 
 from app.config.theme import style_calendar_popup
+from app.models.shipment import Shipment
+from app.models.shipment_item import ShipmentItem
 from app.services.dto import ShipmentItemInput
 from app.services.product_service import ProductService
 
@@ -30,20 +32,30 @@ _ITEM_COLUMNS = ("Mahsulot", "Lot", "Kg", "Narx")
 
 
 class ShipmentFormDialog(QDialog):
-    def __init__(self, parent=None, contract_choices: list[tuple[int, str]] | None = None) -> None:
+    def __init__(
+        self,
+        shipment: Shipment | None = None,
+        parent=None,
+        contract_choices: list[tuple[int, str]] | None = None,
+        items: list[ShipmentItem] | None = None,
+    ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Yangi ortish")
+        self.setWindowTitle("Ortishni tahrirlash" if shipment else "Yangi ortish")
         self.setMinimumWidth(640)
 
         self._products = ProductService().list_all()
 
         self.contract_combo: QComboBox | None = None
-        self.shipment_number_input = QLineEdit()
-        self.date_input = QDateEdit(QDate.currentDate())
+        self.shipment_number_input = QLineEdit(shipment.shipment_number if shipment else "")
+        self.date_input = QDateEdit(
+            QDate(shipment.shipment_date.year, shipment.shipment_date.month, shipment.shipment_date.day)
+            if shipment
+            else QDate.currentDate()
+        )
         self.date_input.setCalendarPopup(True)
         style_calendar_popup(self.date_input)
-        self.invoice_input = QLineEdit()
-        self.ttn_input = QLineEdit()
+        self.invoice_input = QLineEdit(shipment.invoice_number or "" if shipment else "")
+        self.ttn_input = QLineEdit(shipment.ttn_number or "" if shipment else "")
 
         header_form = QFormLayout()
         if contract_choices is not None:
@@ -87,27 +99,39 @@ class ShipmentFormDialog(QDialog):
         layout.addWidget(self.items_table)
         layout.addWidget(buttons)
 
-        self._add_item_row()
+        if items:
+            for item in items:
+                self._add_item_row(item)
+        else:
+            self._add_item_row()
 
-    def _add_item_row(self) -> None:
+    def _add_item_row(self, item: ShipmentItem | None = None) -> None:
         row = self.items_table.rowCount()
         self.items_table.insertRow(row)
 
         product_combo = QComboBox()
         for product in self._products:
             product_combo.addItem(f"{product.name} ({product.unit})", product.id)
+        if item is not None:
+            index = product_combo.findData(item.product_id)
+            if index >= 0:
+                product_combo.setCurrentIndex(index)
         self.items_table.setCellWidget(row, 0, product_combo)
 
-        self.items_table.setCellWidget(row, 1, QLineEdit())
+        self.items_table.setCellWidget(row, 1, QLineEdit(item.lot_number or "" if item else ""))
 
         kg_input = QDoubleSpinBox()
         kg_input.setRange(0.001, 10_000_000)
         kg_input.setDecimals(3)
+        if item is not None:
+            kg_input.setValue(float(item.kg))
         self.items_table.setCellWidget(row, 2, kg_input)
 
         price_input = QDoubleSpinBox()
         price_input.setRange(0.0001, 1_000_000)
         price_input.setDecimals(4)
+        if item is not None:
+            price_input.setValue(float(item.price))
         self.items_table.setCellWidget(row, 3, price_input)
 
     def _remove_selected_row(self) -> None:

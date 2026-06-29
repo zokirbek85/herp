@@ -88,7 +88,7 @@ def test_fully_shipped_but_unpaid_stays_in_progress(contragent_id, product_id) -
     )
 
     summary = contract_service.get_financial_summary(contract_id)
-    assert summary.debt == Decimal("500.00")
+    assert summary.debt == Decimal("-500.00")
     assert contract_service.get(contract_id).status == ContractStatus.IN_PROGRESS
 
 

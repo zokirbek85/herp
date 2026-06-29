@@ -17,6 +17,8 @@ Diqqat:
   "Required module 'pytz' failed to import" xatosi chiqadi).
 """
 
+import sys
+
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 datas = [
@@ -43,18 +45,57 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.datas,
-    [],
-    name="HazoraspSalesManagement",
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=False,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-)
+# macOS'da onefile EXE + `.app` BUNDLE birgalikda PyInstaller tomonidan eskirgan deb topiladi
+# (v7'da xato bo'ladi) — shu sababli macOS uchun onedir (`exclude_binaries` + `COLLECT`) qo'llanadi,
+# Windows uchun esa avvalgidek yagona EXE saqlanadi.
+if sys.platform == "darwin":
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name="HazoraspSalesManagement",
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=False,
+        name="HazoraspSalesManagement",
+    )
+    app = BUNDLE(
+        coll,
+        name="HazoraspSalesManagement.app",
+        bundle_identifier="uz.hazorasptekstil.salesmanagement",
+        info_plist={
+            "CFBundleName": "Hazorasp Sales Management",
+            "CFBundleDisplayName": "Hazorasp Sales Management",
+            "CFBundleShortVersionString": "0.1.0",
+            "CFBundleVersion": "0.1.0",
+            "NSHighResolutionCapable": True,
+        },
+    )
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name="HazoraspSalesManagement",
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+    )

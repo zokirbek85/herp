@@ -66,6 +66,24 @@ class PaymentListViewModel(BaseViewModel):
 
         return self.run_safely(action)
 
+    def update(
+        self, payment_id: int, *, payment_date: date, amount: Decimal, payment_type: PaymentType
+    ) -> bool:
+        def action() -> None:
+            self._payment_service.update_payment(
+                payment_id, payment_date=payment_date, amount=amount, payment_type=payment_type
+            )
+            self.load()
+
+        return self.run_safely(action)
+
+    def delete(self, payment_id: int) -> bool:
+        def action() -> None:
+            self._payment_service.soft_delete(payment_id)
+            self.load()
+
+        return self.run_safely(action)
+
     def contract_choices(self) -> list[tuple[int, str]]:
         return [
             (contract.id, contract.contract_number) for contract in self._contract_service.list_all()

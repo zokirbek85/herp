@@ -90,7 +90,7 @@ class FinancialSummaryService:
             )
 
         advance_balance = total_paid_in_base - total_allocated_from_payments
-        debt = max(total_shipped - total_allocated_to_shipments, Decimal("0"))
+        debt = total_paid_in_base - total_shipped
         remaining_to_ship = max(contract.amount - total_shipped, Decimal("0"))
 
         per_product = self._build_per_product_kg(contract.id, shipped_kg_by_product)

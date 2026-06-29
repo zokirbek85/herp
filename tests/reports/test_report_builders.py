@@ -66,7 +66,7 @@ def test_contragent_report_shows_debt(tmp_path: Path) -> None:
 
     report = build_contragent_report(contragent_id)
     assert len(report.rows) == 1
-    assert report.rows[0]["debt"] == Decimal("300.00")
+    assert report.rows[0]["debt"] == Decimal("-300.00")
 
     pdf_path = report.to_pdf(tmp_path / "contragent.pdf")
     assert pdf_path.exists()

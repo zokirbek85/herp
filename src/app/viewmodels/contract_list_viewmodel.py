@@ -82,3 +82,35 @@ class ContractListViewModel(BaseViewModel):
             self.load()
 
         return self.run_safely(action)
+
+    def update(
+        self,
+        contract_id: int,
+        *,
+        contract_number: str,
+        contragent_id: int,
+        currency: Currency,
+        amount: Decimal,
+        contract_date: date,
+        notes: str | None,
+    ) -> bool:
+        def action() -> None:
+            self._contract_service.update(
+                contract_id,
+                contract_number=contract_number,
+                contragent_id=contragent_id,
+                currency=currency,
+                amount=amount,
+                contract_date=contract_date,
+                notes=notes,
+            )
+            self.load()
+
+        return self.run_safely(action)
+
+    def delete(self, contract_id: int) -> bool:
+        def action() -> None:
+            self._contract_service.soft_delete(contract_id)
+            self.load()
+
+        return self.run_safely(action)
